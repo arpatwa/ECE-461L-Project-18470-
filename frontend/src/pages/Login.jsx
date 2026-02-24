@@ -13,6 +13,9 @@ export default function Login() {
         password: "",
     });
 
+    //handle errors
+    const [error, setError] = useState("");
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -27,7 +30,7 @@ export default function Login() {
 
         // Placeholder for authentication logic
         // After successful login, you could navigate to home:
-        // navigate("/home");
+        navigate("/home");
     };
 
     //Buttons for Login

@@ -48,4 +48,5 @@ NOTE: The frontend should run at http://localhost:5173
 
 ## Current Status
 
-- Homepage UI implemented
+- Homepage, Login, and Signup UI implemented
+- - Backend database collection started

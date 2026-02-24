@@ -23,6 +23,8 @@ export default function Homepage() {
             }}
         >
 
+        {/* Page hero: app title and one-line summary for first impression;*/}
+            {/* Also creation of login/signup buttons and features tab*/}
         <h1 style={{ fontSize: "50px", fontWeight: "400",
         margin: "0 0 25px 0"}}> Hardware Resource Manager</h1>
 

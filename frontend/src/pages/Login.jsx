@@ -28,9 +28,9 @@ export default function Login() {
 
         console.log("Logging in:", formData);
 
-        // Placeholder for authentication logic
-        // After successful login, you could navigate to home:
-        navigate("/home");
+        // Removed placeholder, now can go to hardware pages
+        // After successful login, you could navigate to hardware pages:
+        navigate("/hardware");
     };
 
     //Buttons for Login

@@ -26,6 +26,7 @@ export default function Login() {
     const USE_MOCK_LOGIN = true;
 
     const handleSubmit = async (e) => {
+        console.log("SUBMIT CLICKED");
         e.preventDefault();
 
         setError(""); //get rid of old errors
@@ -35,6 +36,7 @@ export default function Login() {
             if (formData.username === "demo" && formData.password === "123") {
                 navigate("/hardware");
             } else {
+                console.log("Setting error");
                 setError("Invalid username or password");
             }
             return; //stops the real backend code from running
@@ -99,12 +101,6 @@ export default function Login() {
         fontSize: "18px"
     };
 
-    //error style
-    {error && (
-        <p style={{ color: "red", marginTop: "20px", fontWeight: "600" }}>
-            {error}
-            </p>
-    )}
 
 return (
     <div style={{ padding: "40px" }}>
@@ -167,6 +163,12 @@ return (
                         CANCEL
                     </button>
                 </div>
+                
+                {error && (
+                    <p style={{ color: "red", marginTop: "20px", fontWeight: "600" }}>
+                        {error}
+                        </p>
+                )}
             </form>
         </div>
     </div>

@@ -23,14 +23,49 @@ export default function Login() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const USE_MOCK_LOGIN = true;
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        console.log("Logging in:", formData);
+        setError(""); //get rid of old errors
+
+        //DEMO MODE
+        if (USE_MOCK_LOGIN) {
+            if (formData.username === "demo" && formData.password === "123") {
+                navigate("/hardware");
+            } else {
+                setError("Invalid username or password");
+            }
+            return; //stops the real backend code from running
+        }
+
+        try{
+            const response = await fetch("http://localhost:5000/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            }); 
+        
+
+            const data = await response.json(); 
+
+            if (response.ok){
+                //login was successful
+                console.log("Logging in:", formData);
+                navigate("/hardware");
+            } else{
+                //show a backend error
+                setError(data.error || "Login Failed"); 
+            }
+        } catch (err){
+            setError("Server not running"); 
+        }
 
         // Removed placeholder, now can go to hardware pages
         // After successful login, you could navigate to hardware pages:
-        navigate("/hardware");
     };
 
     //Buttons for Login
@@ -63,6 +98,13 @@ export default function Login() {
         marginBottom: "8px",
         fontSize: "18px"
     };
+
+    //error style
+    {error && (
+        <p style={{ color: "red", marginTop: "20px", fontWeight: "600" }}>
+            {error}
+            </p>
+    )}
 
 return (
     <div style={{ padding: "40px" }}>

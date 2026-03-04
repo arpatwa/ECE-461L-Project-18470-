@@ -4,7 +4,7 @@ from flask_cors import CORS
 import hashlib
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for development
 
 app.config["MONGO_URI"] = "mongodb+srv://bno356_db_user:cookiebosa67@cluster0.t2wl4de.mongodb.net/HardwareDB?retryWrites=true&w=majority"
 mongo = PyMongo(app)

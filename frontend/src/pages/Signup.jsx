@@ -19,14 +19,34 @@ export default function Signup() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         // Placeholder for authentication logic
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match!");
             return;
         }
-        console.log("Submitting:", formData);
+        try {
+        const response = await fetch('http://localhost:5000/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: formData.username,
+                password: formData.password
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert("Signup successful!");
+            navigate("/login");
+        } else {
+            alert(data.error || "Signup failed");
+        }
+        } catch (err) {
+            console.error("Error during signup:", err);
+        }
+        // console.log("Submitting:", formData);
         // After successful signup, you could navigate to login or home:
         // navigate("/login");
     };

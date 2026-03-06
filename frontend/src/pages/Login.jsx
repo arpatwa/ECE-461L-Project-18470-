@@ -25,50 +25,39 @@ export default function Login() {
 
     const USE_MOCK_LOGIN = true;
 
-    const handleSubmit = async (e) => {
-        console.log("SUBMIT CLICKED");
-        e.preventDefault();
+    // ... inside your Login component ...
 
-        setError(""); //get rid of old errors
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(""); // Clear previous errors
 
-        //DEMO MODE
-        if (USE_MOCK_LOGIN) {
-            if (formData.username === "demo" && formData.password === "123") {
-                navigate("/hardware");
-            } else {
-                console.log("Setting error");
-                setError("Invalid username or password");
-            }
-            return; //stops the real backend code from running
+    try {
+        const response = await fetch("http://localhost:5000/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username: formData.username,
+                password: formData.password
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Login was successful
+            console.log("Login successful, user:", data.username);
+            navigate("/hardware");
+        } else {
+            // Backend returned an error (e.g., 401 Unauthorized)
+            setError(data.error || "Login Failed");
         }
-
-        try{
-            const response = await fetch("http://localhost:5000/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(formData)
-            }); 
-        
-
-            const data = await response.json(); 
-
-            if (response.ok){
-                //login was successful
-                console.log("Logging in:", formData);
-                navigate("/hardware");
-            } else{
-                //show a backend error
-                setError(data.error || "Login Failed"); 
-            }
-        } catch (err){
-            setError("Server not running"); 
-        }
-
-        // Removed placeholder, now can go to hardware pages
-        // After successful login, you could navigate to hardware pages:
-    };
+    } catch (err) {
+        console.error("Login error:", err);
+        setError("Server not running or unreachable");
+    }
+};
 
     //Buttons for Login
     const buttonStyle = {

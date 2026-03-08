@@ -33,12 +33,19 @@ Users will be able to create projects, view available hardware sets, and check h
 git clone https://github.com/<your-org>/ECE-461L-Project-18470-.git
 cd ECE-461L-Project-18470-/frontend
 ```
-### 2. Install frontend dependencies
+### 2. Install dependencies
 ```bash
 npm install
 npm run dev
 ```
-### 3. Start React development server on your local machine
+Download MongoDB locally
+
+### 3. Start backend on your local machine
+```bash
+python App.py
+```
+
+### 4. Start frontend on your local machine and use platform
 ```bash
 npm run dev
 ```
@@ -49,4 +56,5 @@ NOTE: The frontend should run at http://localhost:5173
 ## Current Status
 
 - Homepage, Login, and Signup UI implemented
-- - Backend database collection started
+- Backend code ste up
+- Frontend/Backend conenction successfull 

@@ -3,6 +3,7 @@ import {useNavigate} from "react-router-dom";
 
 export default function HardwareUI() {
     const navigate = useNavigate()
+    const username = localStorage.getItem("username");
 
     // See which tab is active
     const [activeTab, setActiveTab] = useState("projects"); // 'Projects' and 'resources' so default is Projects
@@ -38,7 +39,7 @@ export default function HardwareUI() {
                     <h1 style={{margin: 0, fontSize: "30px", fontWeight: 500}}>
                         Hardware Resource Manager
                     </h1>
-                    <p style={{ margin: "10px 0 0 0"}}> Logged in as: (placeholder)</p>
+                    <p style={{ margin: "10px 0 0 0"}}> Logged in as: {username || "Not logged in"}</p>
 
                 </div>
 

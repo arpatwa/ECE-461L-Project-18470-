@@ -48,6 +48,7 @@ const handleSubmit = async (e) => {
         if (response.ok) {
             // Login was successful
             console.log("Login successful, user:", data.username);
+            localStorage.setItem("username", data.username);
             navigate("/hardware");
         } else {
             // Backend returned an error (e.g., 401 Unauthorized)

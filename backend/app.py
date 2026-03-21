@@ -11,7 +11,7 @@ CORS(app)
 # -----------------------------
 # No password or SSL needed for default local installation
 LOCAL_URI = "mongodb://localhost:27017/"
-
+# sfdnsjfndsnfjdsnfjnd
 try:
     client = MongoClient(LOCAL_URI)
     db = client["HardwareDB"]

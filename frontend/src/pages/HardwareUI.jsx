@@ -42,26 +42,44 @@ export default function HardwareUI() {
         },
     ]);
 
-    const userProjects = [
-        "app (001)",
-        "sensor-net (002)",
-        "embedded-lab (003)",
-    ];
+    const [userProjects, setUserProjects] = useState([]);
 
+    const handleCreateProject = async () => {
+        if (!projectID || !projectName) {
+            setMessage("Project ID and Name required");
+            return;
+        }
 
-    const handleCreateProject = () => {
-    if (!projectID || !projectName) {
-        setMessage("Project ID and Name required");
-        return;
-    }
+        try {
+            const res = await fetch("http://127.0.0.1:5000/projects", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: projectName,
+                    owner: username, //need this for backend connection
+                }), 
+            }); 
 
-    // will call backend API later on
-    setMessage(`Project created: ${projectName}`);
+            const data = await res.json();
 
-    // clear form
-    setProjectID("");
-    setProjectName("");
-    setDescription("");
+            if (!res.ok) {
+                setMessage(data.error || "Failed to create project");
+                return;
+            }
+
+            setMessage(`Project created: ${projectName}`); 
+
+            // clear form
+            setProjectID("");
+            setProjectName("");
+            setDescription("");
+        } catch(err) {
+            console.error(err);
+            setMessage("Server error creating project"); 
+        }
+
     };
 
     // Resource manager

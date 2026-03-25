@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {useNavigate} from "react-router-dom";
 
 export default function HardwareUI() {
@@ -16,10 +16,12 @@ export default function HardwareUI() {
 
     // Resource tab state palceholder (before backend integration)
 
-    const [selectedProject, setSelectedProject] = useState("app (001)");
-    const [resourceMessage, setResourceMessage] = useState("SUCCESS: Checked out 25 units of HWSet1");
+    const [selectedProject, setSelectedProject] = useState("");
+    const [resourceMessage, setResourceMessage] = useState("");
 
     const [hardwareSets, setHardwareSets] = useState([
+
+        
         {
             name: "HWSet1",
             capacity: 100,
@@ -42,11 +44,28 @@ export default function HardwareUI() {
         },
     ]);
 
-    const userProjects = [
-        "app (001)",
-        "sensor-net (002)",
-        "embedded-lab (003)",
-    ];
+    const [userProjects, setUserProjects] = useState([]);
+
+        const fetchProjects = async () => {
+            try {
+                const res = await fetch("http://127.0.0.1:5000/projects");
+                const data = await res.json();
+
+                const projectNames = data.map(p => p.name);
+                setUserProjects(projectNames);
+
+                if (projectNames.length > 0) {
+                    setSelectedProject(projectNames[0]);
+                }
+            } catch (err) {
+                console.error("Error fetching projects:", err);
+            }
+        };
+
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
 
 
     const handleCreateProject = async () => {
@@ -75,6 +94,7 @@ export default function HardwareUI() {
             }
 
             setMessage(`Project created: ${projectName}`); 
+            await fetchProjects();
 
             // clear form
             setProjectID("");

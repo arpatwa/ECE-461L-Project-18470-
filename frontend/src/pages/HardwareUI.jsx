@@ -42,7 +42,12 @@ export default function HardwareUI() {
         },
     ]);
 
-    const [userProjects, setUserProjects] = useState([]);
+    const userProjects = [
+        "app (001)",
+        "sensor-net (002)",
+        "embedded-lab (003)",
+    ];
+
 
     const handleCreateProject = async () => {
         if (!projectID || !projectName) {

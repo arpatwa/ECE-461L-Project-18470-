@@ -21,7 +21,7 @@ export default function HardwareUI() {
 
     const [hardwareSets, setHardwareSets] = useState([
 
-        
+
         {
             name: "HWSet1",
             capacity: 100,
@@ -44,28 +44,78 @@ export default function HardwareUI() {
         },
     ]);
 
+    const [allProjects, setAllProjects] = useState([]);
     const [userProjects, setUserProjects] = useState([]);
+    const [joinProjectName, setJoinProjectName] = useState("");
 
-        const fetchProjects = async () => {
-            try {
-                const res = await fetch("http://127.0.0.1:5000/projects");
-                const data = await res.json();
+    const fetchProjects = async () => {
+        try {
+            const res = await fetch("http://127.0.0.1:5000/projects");
+            const data = await res.json();
 
-                const projectNames = data.map(p => p.name);
-                setUserProjects(projectNames);
+            const projectsArray = Array.isArray(data) ? data : data.projects || [];
 
-                if (projectNames.length > 0) {
-                    setSelectedProject(projectNames[0]);
-                }
-            } catch (err) {
-                console.error("Error fetching projects:", err);
+            setAllProjects(projectsArray);
+
+            const joinedProjects = projectsArray.filter(
+                (project) =>
+                    project.owner === username ||
+                    (Array.isArray(project.members) && project.members.includes(username))
+            );
+
+            setUserProjects(joinedProjects);
+
+            if (joinedProjects.length > 0) {
+                setSelectedProject(joinedProjects[0].projectID);
+            } else {
+                setSelectedProject("");
             }
-        };
+        } catch (err) {
+            console.error("Error fetching projects:", err);
+        }
+    };
 
 
     useEffect(() => {
         fetchProjects();
     }, []);
+
+    // Be able to handle joining projects if already joined, joining new, non-existent project, etc
+    const handleJoinProject = async () => {
+        if (!joinProjectName) {
+            setMessage("Please choose a project to join");
+            return;
+        }
+
+        try {
+            const r = await fetch("http://127.0.0.1:5000/projects/join", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    projectID: joinProjectName,
+                    username: username,
+                }),
+            });
+
+            const data = await r.json();
+
+            if (!r.ok) {
+                setMessage(data.error || "Failed to join project");
+                return;
+            }
+
+            // Successful project join
+            setMessage(data.message || `Successfully joined project: ${joinProjectName}`);
+            setJoinProjectName("");
+            await fetchProjects();
+        } catch (err) {
+            console.error(err);
+            setMessage("Server error in joining the project");
+        }
+
+    };
 
 
     const handleCreateProject = async () => {
@@ -81,7 +131,10 @@ export default function HardwareUI() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                    // Need all of tehse so each person only has access to their stuff
+                    projectID: projectID,
                     name: projectName,
+                    description: description,
                     owner: username, //need this for backend connection
                 }), 
             }); 
@@ -104,7 +157,6 @@ export default function HardwareUI() {
             console.error(err);
             setMessage("Server error creating project"); 
         }
-
     };
 
     // Resource manager
@@ -170,7 +222,7 @@ export default function HardwareUI() {
 
     return (
         // Main header
-        <div style={{padding: "40px", width: "200%"}}>
+        <div style={{padding: "40px", width: "200%", boxSizing: "border-box"}}>
             <div style={{ marginBottom: "20px"}}>
                 <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%"}}>
                 <div>
@@ -183,7 +235,10 @@ export default function HardwareUI() {
 
                     { /* Navigate to homepage if you want to log out */}
                     <button
-                        onClick={ () => navigate("/")}
+                        onClick={() => {
+                            localStorage.removeItem("username");
+                            navigate("/");
+                        }} // Logout and removed saved user name
                         style={{
                             backgroundColor: "#0000ff",
                             color: "white",
@@ -283,9 +338,43 @@ export default function HardwareUI() {
         >
             CREATE PROJECT
         </button>
+
+        {/* Join a project frontend */}
+        <div style={{ marginTop: "30px", borderTop: "1px solid #ddd", paddingTop: "24px" }}>
+            <h2 style={{ marginTop: 0 }}>JOIN EXISTING PROJECT</h2>
+
+
+            {/* Join using project ID only, not name (resource tab shows both for ones you have access too */}
+            <p>Enter Project ID to join</p>
+            <input
+                type="text"
+                value={joinProjectName}
+                onChange={(e) => setJoinProjectName(e.target.value)}
+                placeholder="e.g. P101"
+                style={{
+                    width: "100%",
+                    padding: "10px",
+                    marginBottom: "15px"
+                }}
+            />
+
+            <button
+                onClick={handleJoinProject}
+                style={{
+                    backgroundColor: "#0000ff",
+                    color: "white",
+                    padding: "12px 22px",
+                    borderRadius: "10px",
+                    border: "none",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                }}
+            >
+                JOIN PROJECT
+            </button>
+        </div>
     </div>
 
-                //Resource Ui integeration
             ) : (
                 /* Active Project Selector
            Allows user to choose which project
@@ -305,11 +394,12 @@ export default function HardwareUI() {
                                 backgroundColor: "white",
                             }}
                         >
-                            {userProjects.map((project, index) => (
-                                <option key={index} value={project}>
-                                    {project}
+                            {userProjects.map((project) => (
+                                <option key={project.projectID} value={project.projectID}>
+                                    {project.projectID} ({project.name})
                                 </option>
                             ))}
+
                         </select>
                     </div>
 

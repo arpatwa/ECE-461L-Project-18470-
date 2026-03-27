@@ -88,8 +88,15 @@ def login():
 def create_project():
     data = request.json
 
+    # Prevent duplicate project IDs (test case)
+    if projects_collection.find_one({"projectID": data["projectID"]}):
+        return jsonify({"error": "Project ID already exists"}), 400
+
     project = {
+        # Frontend sends all data to backend
+        "projectID": data["projectID"],
         "name": data["name"],
+        "description": data.get("description", ""),
         "owner": data["owner"],
         "members": [data["owner"]]
     }
@@ -109,6 +116,32 @@ def get_projects():
 def delete_project(name):
     projects_collection.delete_one({"name": name})
     return jsonify({"message": "Project deleted"})
+
+# Joining Projects that exist using ID
+@app.route("/projects/join", methods=["POST"])
+def join_project():
+    data = request.json
+    if not data or not data.get("projectID") or not data.get("username"):
+        return jsonify({"error": "Project ID and username required"}), 400
+
+    project = projects_collection.find_one({"projectID": data["projectID"]})
+    if not project:
+        return jsonify({"error": "Project has not been found"}), 404
+
+    # Check if the user is already a member of the given projectID
+    if data["username"] in project.get("members", []):
+        return jsonify({"message": "Already joined"}), 200
+    # update member list if they were not part of the project before
+    projects_collection.update_one(
+        {"projectID": data["projectID"]},
+        {"$push": {"members": data["username"]}}
+    )
+
+    return jsonify({
+        "message": f"Project joined successfully: {project['projectID']} ({project['name']})",
+        "projectID": project["projectID"],
+        "name": project["name"]
+    }), 200
 
 
 # -----------------------------

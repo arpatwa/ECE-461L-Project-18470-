@@ -2,6 +2,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
+from dotenv import load_dotenv
+import urllib.parse
+
+
 
 def seed_resources():
     default_resources = [
@@ -20,21 +25,32 @@ CORS(app)
 # -----------------------------
 # DATABASE SETUP
 # -----------------------------
-LOCAL_URI = "mongodb://localhost:27017/"
+# LOCAL_URI = "mongodb://localhost:27017/"
+load_dotenv()
+# Get credentials from environment
+username = urllib.parse.quote_plus(os.getenv("MONGO_USER"))
+password = urllib.parse.quote_plus(os.getenv("MONGO_PASS"))
+cluster = os.getenv("MONGO_CLUSTER")
+db_name = os.getenv("MONGO_DB")
+
+# atlast 
+ATLAS_URI = f"mongodb+srv://{username}:{password}@{cluster}/{db_name}?retryWrites=true&w=majority"
+
 
 try:
-    client = MongoClient(LOCAL_URI)
+    # client = MongoClient(LOCAL_URI)
+    client = MongoClient(ATLAS_URI)
     db = client["HardwareDB"]
     users_collection = db["users"]
     projects_collection = db["projects"]
     resources_collection = db["resources"]
 
     client.admin.command('ping')
-    print("Connected to MongoDB!")
+    print("Connected to MongoDB Atlas!")
     seed_resources()
 
 except Exception as e:
-    print(f"MongoDB Connection Error: {e}")
+    print(f"MongoDB Atlas Connection Error: {e}")
 
 # -----------------------------
 # PASSWORD FUNCTIONS

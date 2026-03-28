@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function HardwareUI() {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const username = localStorage.getItem("username");
 
     // See which tab is active
@@ -14,12 +14,13 @@ export default function HardwareUI() {
     const [description, setDescription] = useState("");
     const [message, setMessage] = useState("");
 
-    // Resource tab state place holder (before backend integration)
-
+    // Resource tab state
     const [selectedProject, setSelectedProject] = useState("");
     const [resourceMessage, setResourceMessage] = useState("");
 
     const [hardwareSets, setHardwareSets] = useState([]);
+    // NEW STATE: Track the currently selected hardware set from the dropdown
+    const [selectedHardwareIndex, setSelectedHardwareIndex] = useState(0);
 
     const [allProjects, setAllProjects] = useState([]);
     const [userProjects, setUserProjects] = useState([]);
@@ -52,7 +53,7 @@ export default function HardwareUI() {
         }
     };
 
-    const fetchProjectResources = async (projectID)=> {
+    const fetchProjectResources = async (projectID) => {
         if (!projectID) return;
 
         try {
@@ -60,7 +61,7 @@ export default function HardwareUI() {
             const data = await res.json();
 
             if (!res.ok) {
-                setResourceMessage(data.error|| "Failed to load resources");
+                setResourceMessage(data.error || "Failed to load resources");
                 return;
             }
             const formatted = data.map((set) => ({
@@ -71,18 +72,22 @@ export default function HardwareUI() {
 
             setHardwareSets(formatted);
             setResourceMessage("");
+            
+            // Reset to the first hardware set if the current index is out of bounds after a fetch
+            if (selectedHardwareIndex >= formatted.length) {
+                setSelectedHardwareIndex(0);
+            }
         } catch (err) {
             console.error(err);
             setResourceMessage("Server error loading resources");
         }
     };
 
-
     useEffect(() => {
-        const loadProjects =  ()=> {
+        const loadProjects = () => {
             fetchProjects();
         }
-         loadProjects();
+        loadProjects();
     }, []);
 
     useEffect(() => {
@@ -132,7 +137,6 @@ export default function HardwareUI() {
 
     };
 
-
     const handleCreateProject = async () => {
         if (!projectID || !projectName) {
             setMessage("Project ID and Name required");
@@ -146,13 +150,13 @@ export default function HardwareUI() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    // Need all of tehse so each person only has access to their stuff
+                    // Need all of these so each person only has access to their stuff
                     projectID: projectID,
                     name: projectName,
                     description: description,
                     owner: username, //need this for backend connection
-                }), 
-            }); 
+                }),
+            });
 
             const data = await res.json();
 
@@ -161,16 +165,16 @@ export default function HardwareUI() {
                 return;
             }
 
-            setMessage(`Project created: ${projectName}`); 
+            setMessage(`Project created: ${projectName}`);
             await fetchProjects();
 
             // clear form
             setProjectID("");
             setProjectName("");
             setDescription("");
-        } catch(err) {
+        } catch (err) {
             console.error(err);
-            setMessage("Server error creating project"); 
+            setMessage("Server error creating project");
         }
     };
 
@@ -223,10 +227,9 @@ export default function HardwareUI() {
             console.error(err);
             setResourceMessage("Server error during checkout");
         }
-
     };
 
-    const handleCheckin =async (index) => {
+    const handleCheckin = async (index) => {
         const set = hardwareSets[index];
         const qty = Number(set.checkinQty);
 
@@ -270,16 +273,16 @@ export default function HardwareUI() {
 
     return (
         // Main header
-        <div style={{padding: "40px", width: "200%", boxSizing: "border-box"}}>
-            <div style={{ marginBottom: "20px"}}>
-                <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%"}}>
-                <div>
-                    <h1 style={{margin: 0, fontSize: "30px", fontWeight: 500}}>
-                        Hardware Resource Manager
-                    </h1>
-                    <p style={{ margin: "10px 0 0 0"}}> Logged in as: {username || "Not logged in"}</p>
+        <div style={{ padding: "40px", width: "200%", boxSizing: "border-box" }}>
+            <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: "30px", fontWeight: 500 }}>
+                            Hardware Resource Manager
+                        </h1>
+                        <p style={{ margin: "10px 0 0 0" }}> Logged in as: {username || "Not logged in"}</p>
 
-                </div>
+                    </div>
 
                     { /* Navigate to homepage if you want to log out */}
                     <button
@@ -296,7 +299,7 @@ export default function HardwareUI() {
                             fontWeight: "700",
                             cursor: "pointer",
                         }}
-                        >
+                    >
                         LOGOUT
                     </button>
                 </div>
@@ -332,123 +335,149 @@ export default function HardwareUI() {
                 >
                     RESOURCES
                 </button>
-                
+
             </div>
             {/* Tab content */}
             {activeTab === "projects" ? (
-    <div style={{ border: "1px solid #ddd", padding: "24px", borderRadius: "10px" }}>
-        <h2 style={{ marginTop: 0 }}>CREATE NEW PROJECT</h2>
+                <div style={{ border: "1px solid #ddd", padding: "24px", borderRadius: "10px" }}>
+                    <h2 style={{ marginTop: 0 }}>CREATE NEW PROJECT</h2>
 
-        {/* Project ID */}
-        <p>Project ID</p>
-        <input
-            value={projectID}
-            onChange={(e) => setProjectID(e.target.value)}
-            style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
-        />
+                    {/* Project ID */}
+                    <p>Project ID</p>
+                    <input
+                        value={projectID}
+                        onChange={(e) => setProjectID(e.target.value)}
+                        style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
+                    />
 
-        {/* Project Name */}
-        <p>Project Name</p>
-        <input
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
-        />
+                    {/* Project Name */}
+                    <p>Project Name</p>
+                    <input
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
+                    />
 
-        {/* Description */}
-        <p>Description (optional)</p>
-        <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Project description..."
-            style={{ width: "100%", padding: "10px", marginBottom: "15px", fontFamily: "inherit", fontSize: "16px"}}
-        />
+                    {/* Description */}
+                    <p>Description (optional)</p>
+                    <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Project description..."
+                        style={{ width: "100%", padding: "10px", marginBottom: "15px", fontFamily: "inherit", fontSize: "16px" }}
+                    />
 
-        {/* Success Message */}
-        {message && (
-            <div style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "15px" }}>
-                {message}
-            </div>
-        )}
+                    {/* Success Message */}
+                    {message && (
+                        <div style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "15px" }}>
+                            {message}
+                        </div>
+                    )}
 
-        {/* Create Button */}
-        <button
-            onClick={handleCreateProject}
-            style={{
-                backgroundColor: "#0000ff",
-                color: "white",
-                padding: "12px 22px",
-                borderRadius: "10px",
-                border: "none",
-                fontWeight: "700",
-                cursor: "pointer",
-            }}
-        >
-            CREATE PROJECT
-        </button>
+                    {/* Create Button */}
+                    <button
+                        onClick={handleCreateProject}
+                        style={{
+                            backgroundColor: "#0000ff",
+                            color: "white",
+                            padding: "12px 22px",
+                            borderRadius: "10px",
+                            border: "none",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                        }}
+                    >
+                        CREATE PROJECT
+                    </button>
 
-        {/* Join a project frontend */}
-        <div style={{ marginTop: "30px", borderTop: "1px solid #ddd", paddingTop: "24px" }}>
-            <h2 style={{ marginTop: 0 }}>JOIN EXISTING PROJECT</h2>
+                    {/* Join a project frontend */}
+                    <div style={{ marginTop: "30px", borderTop: "1px solid #ddd", paddingTop: "24px" }}>
+                        <h2 style={{ marginTop: 0 }}>JOIN EXISTING PROJECT</h2>
 
 
-            {/* Join using project ID only, not name (resource tab shows both for ones you have access too */}
-            <p>Enter Project ID to join</p>
-            <input
-                type="text"
-                value={joinProjectName}
-                onChange={(e) => setJoinProjectName(e.target.value)}
-                placeholder="e.g. P101"
-                style={{
-                    width: "100%",
-                    padding: "10px",
-                    marginBottom: "15px"
-                }}
-            />
+                        {/* Join using project ID only, not name (resource tab shows both for ones you have access too */}
+                        <p>Enter Project ID to join</p>
+                        <input
+                            type="text"
+                            value={joinProjectName}
+                            onChange={(e) => setJoinProjectName(e.target.value)}
+                            placeholder="e.g. P101"
+                            style={{
+                                width: "100%",
+                                padding: "10px",
+                                marginBottom: "15px"
+                            }}
+                        />
 
-            <button
-                onClick={handleJoinProject}
-                style={{
-                    backgroundColor: "#0000ff",
-                    color: "white",
-                    padding: "12px 22px",
-                    borderRadius: "10px",
-                    border: "none",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                }}
-            >
-                JOIN PROJECT
-            </button>
-        </div>
-    </div>
+                        <button
+                            onClick={handleJoinProject}
+                            style={{
+                                backgroundColor: "#0000ff",
+                                color: "white",
+                                padding: "12px 22px",
+                                borderRadius: "10px",
+                                border: "none",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                            }}
+                        >
+                            JOIN PROJECT
+                        </button>
+                    </div>
+                </div>
 
             ) : (
                 /* Active Project Selector
            Allows user to choose which project
            hardware will be checked in/out for */
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                    <div style={{ border: "1px solid #000", padding: "20px", backgroundColor: "#f7f7f7" }}>
-                        <label style={{ fontWeight: "700", marginRight: "10px" }}>Active Project:</label>
-                        <select
-                            value={selectedProject}
-                            onChange={(e) => setSelectedProject(e.target.value)}
-                            style={{
-                                padding: "10px",
-                                minWidth: "220px",
-                                border: "1px solid #ccc",
-                                borderRadius: "6px",
-                                fontSize: "16px",
-                                backgroundColor: "white",
-                            }}
-                        >
-                            {userProjects.map((project) => (
-                                <option key={project.projectID} value={project.projectID}>
-                                    {project.projectID} ({project.name})
-                                </option>
-                            ))}
+                    <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                        <div style={{ border: "1px solid #000", padding: "20px", backgroundColor: "#f7f7f7", flex: 1 }}>
+                            <label style={{ fontWeight: "700", marginRight: "10px" }}>Active Project:</label>
+                            <select
+                                value={selectedProject}
+                                onChange={(e) => setSelectedProject(e.target.value)}
+                                style={{
+                                    padding: "10px",
+                                    minWidth: "220px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "6px",
+                                    fontSize: "16px",
+                                    backgroundColor: "white",
+                                }}
+                            >
+                                {userProjects.map((project) => (
+                                    <option key={project.projectID} value={project.projectID}>
+                                        {project.projectID} ({project.name})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                        </select>
+                        {/* NEW: Hardware Set Selector Dropdown */}
+                        {hardwareSets.length > 0 && (
+                            <div style={{ border: "1px solid #000", padding: "20px", backgroundColor: "#f7f7f7", flex: 1 }}>
+                                <label style={{ fontWeight: "700", marginRight: "10px" }}>Hardware Set:</label>
+                                <select
+                                    value={selectedHardwareIndex}
+                                    onChange={(e) => setSelectedHardwareIndex(Number(e.target.value))}
+                                    style={{
+                                        padding: "10px",
+                                        minWidth: "220px",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "6px",
+                                        fontSize: "16px",
+                                        backgroundColor: "white",
+                                    }}
+                                >
+                                    {hardwareSets.map((set, index) => (
+                                        <option key={set.name} value={index}>
+                                            {set.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     {resourceMessage && (
@@ -457,10 +486,11 @@ export default function HardwareUI() {
                         </div>
                     )}
 
+                    {/* NEW: Display only the selected hardware set */}
                     <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
-                        {hardwareSets.map((set, index) => (
+                        {hardwareSets.length > 0 && hardwareSets[selectedHardwareIndex] && (
                             <div
-                                key={set.name}
+                                key={hardwareSets[selectedHardwareIndex].name}
                                 style={{
                                     border: "1px solid #ddd",
                                     padding: "24px",
@@ -468,7 +498,9 @@ export default function HardwareUI() {
                                     backgroundColor: "white",
                                 }}
                             >
-                                <h2 style={{ marginTop: 0, marginBottom: "18px", fontWeight: "500" }}>{set.name}</h2>
+                                <h2 style={{ marginTop: 0, marginBottom: "18px", fontWeight: "500" }}>
+                                    {hardwareSets[selectedHardwareIndex].name}
+                                </h2>
 
                                 <div
                                     style={{
@@ -478,11 +510,11 @@ export default function HardwareUI() {
                                         backgroundColor: "#fafafa",
                                     }}
                                 >
-                                    <p style={{ margin: "6px 0" }}><strong>Capacity:</strong> {set.capacity} units</p>
-                                    <p style={{ margin: "6px 0" }}><strong>Available:</strong> {set.available} units</p>
+                                    <p style={{ margin: "6px 0" }}><strong>Capacity:</strong> {hardwareSets[selectedHardwareIndex].capacity} units</p>
+                                    <p style={{ margin: "6px 0" }}><strong>Available:</strong> {hardwareSets[selectedHardwareIndex].available} units</p>
 
                                     <p style={{ marginTop: "18px", marginBottom: "6px" }}>
-                                        <strong>Your Project:</strong> {set.yourProject} units
+                                        <strong>Your Project:</strong> {hardwareSets[selectedHardwareIndex].yourProject} units
                                     </p>
                                 </div>
 
@@ -492,9 +524,9 @@ export default function HardwareUI() {
                                         <input
                                             type="number"
                                             placeholder="Qty"
-                                            value={set.checkoutQty}
+                                            value={hardwareSets[selectedHardwareIndex].checkoutQty}
                                             onChange={(e) =>
-                                                handleResourceInputChange(index, "checkoutQty", e.target.value)
+                                                handleResourceInputChange(selectedHardwareIndex, "checkoutQty", e.target.value)
                                             }
                                             style={{
                                                 flex: 1,
@@ -505,7 +537,7 @@ export default function HardwareUI() {
                                             }}
                                         />
                                         <button
-                                            onClick={() => handleCheckout(index)}
+                                            onClick={() => handleCheckout(selectedHardwareIndex)}
                                             style={{
                                                 backgroundColor: "#0000ff",
                                                 color: "white",
@@ -527,9 +559,9 @@ export default function HardwareUI() {
                                         <input
                                             type="number"
                                             placeholder="Qty"
-                                            value={set.checkinQty}
+                                            value={hardwareSets[selectedHardwareIndex].checkinQty}
                                             onChange={(e) =>
-                                                handleResourceInputChange(index, "checkinQty", e.target.value)
+                                                handleResourceInputChange(selectedHardwareIndex, "checkinQty", e.target.value)
                                             }
                                             style={{
                                                 flex: 1,
@@ -540,16 +572,16 @@ export default function HardwareUI() {
                                             }}
                                         />
                                         <button
-                                            onClick={() => handleCheckin(index)}
-                                            disabled={set.yourProject === 0}
+                                            onClick={() => handleCheckin(selectedHardwareIndex)}
+                                            disabled={hardwareSets[selectedHardwareIndex].yourProject === 0}
                                             style={{
-                                                backgroundColor:  "#0000ff",
+                                                backgroundColor: "#0000ff",
                                                 color: "WHITE",
                                                 padding: "12px 20px",
                                                 borderRadius: "10px",
                                                 border: "none",
                                                 fontWeight: "700",
-                                                cursor: set.yourProject === 0 ? "not-allowed" : "pointer",
+                                                cursor: hardwareSets[selectedHardwareIndex].yourProject === 0 ? "not-allowed" : "pointer",
                                             }}
                                         >
                                             CHECK IN
@@ -557,7 +589,7 @@ export default function HardwareUI() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     <div style={{ border: "1px solid #ddd", padding: "24px" }}>
@@ -577,7 +609,5 @@ export default function HardwareUI() {
                 </div>
             )}
         </div>
-        
-
-    )
+    );
 }

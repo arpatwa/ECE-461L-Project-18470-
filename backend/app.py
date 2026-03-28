@@ -3,6 +3,17 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 
+def seed_resources():
+    default_resources = [
+        {"name": "HWSet1", "capacity": 100, "available": 100},
+        {"name": "HWSet2", "capacity": 100, "available": 100},
+    ]
+
+    for resource in default_resources:
+        existing = resources_collection.find_one({"name": resource["name"]})
+        if not existing:
+            resources_collection.insert_one(resource)
+
 app = Flask(__name__)
 CORS(app)
 
@@ -20,6 +31,7 @@ try:
 
     client.admin.command('ping')
     print("Connected to MongoDB!")
+    seed_resources()
 
 except Exception as e:
     print(f"MongoDB Connection Error: {e}")
@@ -98,7 +110,12 @@ def create_project():
         "name": data["name"],
         "description": data.get("description", ""),
         "owner": data["owner"],
-        "members": [data["owner"]]
+        "members": [data["owner"]],
+        # For check in/out updates
+        "checkedOutResources": {
+            "HWSet1": 0, # New projects have 0 HW sets
+            "HWSet2": 0
+        }
     }
 
     projects_collection.insert_one(project)
@@ -168,6 +185,39 @@ def get_resources():
     resources = list(resources_collection.find({}, {"_id": 0}))
     return jsonify(resources)
 
+# Get resources per each project
+@app.route("/resources/<projectID>", methods=["GET"])
+def get_resources_for_project(projectID):
+    username = request.args.get("username")
+
+    # Make sure the project selected actually exists (it should if it can be accessed from Resources tab)
+    project = projects_collection.find_one({"projectID": projectID})
+    if not project:
+        return jsonify({"error": "Project not found"}),404
+    # Make sure the user that is trying to check out is a member of the project (again, should be bc has access in resources tab)
+    if username not in project.get("members", []):
+        return jsonify({"error": "Authorized access denied"}), 403 # Auth code error for https
+    # Access global resources
+    resources = list(resources_collection.find({}, {"_id": 0}))
+
+    # Get resources specific to the project we are working with
+    checked_out = project.get("checkedOutResources", {})
+
+    combine =[]
+    for resource in resources:
+        project_count= checked_out.get(resource["name"], 0) # Default 0 if no entry for that HW set
+
+        # Return what frontend needs to read for UI
+        combine.append({
+            "name": resource["name"],
+            "capacity": resource["capacity"],
+            "available": resource["available"],
+            "inUse": resource["capacity"] - resource["available"],
+            "yourProject": project_count,
+
+        })
+
+    return jsonify(combine) # Give info to front end
 
 # -----------------------------
 # CHECKOUT
@@ -177,20 +227,40 @@ def get_resources():
 def checkout():
     data = request.json
 
-    resource = resources_collection.find_one({"name": data["name"]})
+    projectID = data.get("projectID")
+    username = data.get("username")
+    resource_name = data.get("name")
+    qty = int(data.get("qty", 0))
 
+    if not projectID or not username or not resource_name or qty <= 0:
+        return jsonify({"error": "Missing or invalid checkout data"}), 400
+    # Check if project exists
+    project = projects_collection.find_one({"projectID": projectID})
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    # Check if who wants to check out is a member
+    if username not in project.get("members", []):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    resource = resources_collection.find_one({"name":resource_name})
     if not resource:
         return jsonify({"error": "Resource not found"}), 404
 
-    if resource["available"] <= 0:
+    if resource["available"] < qty:
         return jsonify({"error": "Resource unavailable"}), 400
 
+    # Update global HW sets
     resources_collection.update_one(
         {"name": data["name"]},
-        {"$inc": {"available": -1}}
+        {"$inc": {"available": -qty}} # Remove how many was entered
+    )
+    # Update project HW set values
+    projects_collection.update_one(
+        {"projectID": projectID},
+        {"$inc": {f"checkedOutResources.{resource_name}": qty}}
     )
 
-    return jsonify({"message": "Hardware checked out"})
+    return jsonify({"message": f"Checked out {qty} units of {resource_name}"}), 200
 
 
 # -----------------------------
@@ -201,12 +271,38 @@ def checkout():
 def checkin():
     data = request.json
 
+    projectID = data.get("projectID")
+    username = data.get("username")
+    resource_name = data.get("name")
+    qty = int(data.get("qty", 0))
+
+    if not projectID or not username or not resource_name or qty <= 0:
+        return jsonify({"error": "Missing or invalid checkout data"}), 400
+    # Check if project exists
+    project = projects_collection.find_one({"projectID": projectID})
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    # Check if who wants to check out is a member
+    if username not in project.get("members", []):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    current_qty = project.get("checkedOutResources", {}).get(resource_name, 0) # Default 0 if HW set not valid
+
+    # Check if we have x number of checked out to check in
+    if current_qty < qty:
+        return jsonify({"error": "Project does not have this many units checked out"}), 400
+
     resources_collection.update_one(
         {"name": data["name"]},
-        {"$inc": {"available": 1}}
+        {"$inc": {"available": qty}} # Adding qty to global resources
     )
 
-    return jsonify({"message": "Hardware returned"})
+    projects_collection.update_one(
+        {"projectID": projectID},
+        {"$inc": {f"checkedOutResources.{resource_name}": -qty}}
+    )
+
+    return jsonify({"message": f"Checked in {qty} units of {resource_name}"}), 200 # Success with check in
 
 
 # -----------------------------

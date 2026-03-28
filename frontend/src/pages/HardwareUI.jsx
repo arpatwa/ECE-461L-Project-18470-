@@ -14,35 +14,12 @@ export default function HardwareUI() {
     const [description, setDescription] = useState("");
     const [message, setMessage] = useState("");
 
-    // Resource tab state palceholder (before backend integration)
+    // Resource tab state place holder (before backend integration)
 
     const [selectedProject, setSelectedProject] = useState("");
     const [resourceMessage, setResourceMessage] = useState("");
 
-    const [hardwareSets, setHardwareSets] = useState([
-
-
-        {
-            name: "HWSet1",
-            capacity: 100,
-            available: 75,
-            inUse: 25,
-            yourProject: 25,
-            checkoutQty: "25",
-            checkinQty: "",
-            projectsUsing: 1,
-        },
-        {
-            name: "HWSet2",
-            capacity: 100,
-            available: 100,
-            inUse: 0,
-            yourProject: 0,
-            checkoutQty: "",
-            checkinQty: "",
-            projectsUsing: 0,
-        },
-    ]);
+    const [hardwareSets, setHardwareSets] = useState([]);
 
     const [allProjects, setAllProjects] = useState([]);
     const [userProjects, setUserProjects] = useState([]);
@@ -75,10 +52,48 @@ export default function HardwareUI() {
         }
     };
 
+    const fetchProjectResources = async (projectID)=> {
+        if (!projectID) return;
+
+        try {
+            const res = await fetch(`http://127.0.0.1:5000/resources/${projectID}?username=${username}`);
+            const data = await res.json();
+
+            if (!res.ok) {
+                setResourceMessage(data.error|| "Failed to load resources");
+                return;
+            }
+            const formatted = data.map((set) => ({
+                ...set,
+                checkoutQty: "",
+                checkinQty: ""
+            }));
+
+            setHardwareSets(formatted);
+            setResourceMessage("");
+        } catch (err) {
+            console.error(err);
+            setResourceMessage("Server error loading resources");
+        }
+    };
+
 
     useEffect(() => {
-        fetchProjects();
+        const loadProjects =  ()=> {
+            fetchProjects();
+        }
+         loadProjects();
     }, []);
+
+    useEffect(() => {
+        const loadResources = async () => {
+            if (selectedProject) {
+                await fetchProjectResources(selectedProject);
+            }
+        };
+
+        loadResources();
+    }, [selectedProject]);
 
     // Be able to handle joining projects if already joined, joining new, non-existent project, etc
     const handleJoinProject = async () => {
@@ -166,58 +181,91 @@ export default function HardwareUI() {
         setHardwareSets(updatedSets);
     };
 
-    const handleCheckout = (index) => {
-        const updatedSets = [...hardwareSets];
-        const qty = Number(updatedSets[index].checkoutQty);
+    const handleCheckout = async (index) => {
+        const set = hardwareSets[index];
+        // String to num for qty
+        const qty = Number(set.checkoutQty); // Get curr checkout value
 
+        // Prevent empty, 0 , negative inputs
         if (!qty || qty <= 0) {
-            setResourceMessage(`ERROR: Enter a valid checkout quantity for ${updatedSets[index].name}`);
+            setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
             return;
         }
+        // API call starting
 
-        if (qty > updatedSets[index].available) {
-            setResourceMessage(`ERROR: Not enough available units in ${updatedSets[index].name}`);
-            return;
+        try {
+            const res = await fetch("http://127.0.0.1:5000/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                // Send data to back
+                body: JSON.stringify({
+                    projectID: selectedProject,
+                    username: username,
+                    name: set.name,
+                    qty: qty
+                }),
+            });
+
+            // Back response into js
+            const data = await res.json();
+
+            if (!res.ok) {
+                setResourceMessage(data.error || "Checkout failed");
+                return;
+            }
+
+            setResourceMessage(data.message);
+            // UI updated backend data
+            await fetchProjectResources(selectedProject);
+        } catch (err) {
+            console.error(err);
+            setResourceMessage("Server error during checkout");
         }
-// Manual integration for frontend quantity updates (PLACEHOLDER)
-        updatedSets[index].available -= qty;
-        updatedSets[index].inUse += qty;
-        updatedSets[index].yourProject += qty;
 
-        if (updatedSets[index].yourProject === qty) {
-            updatedSets[index].projectsUsing += 1;
-        }
-
-        updatedSets[index].checkoutQty = "";
-        setHardwareSets(updatedSets);
-        setResourceMessage(`SUCCESS: Checked out ${qty} units of ${updatedSets[index].name}`);
     };
 
-    const handleCheckin = (index) => {
-        const updatedSets = [...hardwareSets];
-        const qty = Number(updatedSets[index].checkinQty);
+    const handleCheckin =async (index) => {
+        const set = hardwareSets[index];
+        const qty = Number(set.checkinQty);
 
         if (!qty || qty <= 0) {
-            setResourceMessage(`ERROR: Enter a valid check in quantity for ${updatedSets[index].name}`);
+            setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
             return;
         }
 
-        if (qty > updatedSets[index].yourProject) {
-            setResourceMessage(`ERROR: Your project does not have that many units of ${updatedSets[index].name}`);
-            return;
+        try {
+            // Call backend
+            const res = await fetch("http://127.0.0.1:5000/checkin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                // Data to backend
+                body: JSON.stringify({
+                    projectID: selectedProject,
+                    username: username,
+                    name: set.name,
+                    qty: qty
+                }),
+            });
+            // Back response into js
+            const data = await res.json();
+
+            if (!res.ok) {
+                setResourceMessage(data.error || "Checkin failed");
+                return;
+            }
+
+            setResourceMessage(data.message);
+            // UI updated backend data
+            await fetchProjectResources(selectedProject);
+        } catch (err) {
+            // Cant connect server
+            console.error(err);
+            setResourceMessage("Server error during checkin");
         }
-
-        updatedSets[index].available += qty;
-        updatedSets[index].inUse -= qty;
-        updatedSets[index].yourProject -= qty;
-
-        if (updatedSets[index].yourProject === 0 && updatedSets[index].projectsUsing > 0) {
-            updatedSets[index].projectsUsing -= 1;
-        }
-
-        updatedSets[index].checkinQty = "";
-        setHardwareSets(updatedSets);
-        setResourceMessage(`SUCCESS: Checked in ${qty} units of ${updatedSets[index].name}`);
     };
 
     return (
@@ -432,7 +480,6 @@ export default function HardwareUI() {
                                 >
                                     <p style={{ margin: "6px 0" }}><strong>Capacity:</strong> {set.capacity} units</p>
                                     <p style={{ margin: "6px 0" }}><strong>Available:</strong> {set.available} units</p>
-                                    <p style={{ margin: "6px 0" }}><strong>In Use:</strong> {set.inUse} units</p>
 
                                     <p style={{ marginTop: "18px", marginBottom: "6px" }}>
                                         <strong>Your Project:</strong> {set.yourProject} units
@@ -523,7 +570,6 @@ export default function HardwareUI() {
                                     <p style={{ margin: "6px 0" }}>Total: {set.capacity}</p>
                                     <p style={{ margin: "6px 0" }}>Available: {set.available}</p>
                                     <p style={{ margin: "6px 0" }}>Checked Out: {set.inUse}</p>
-                                    <p style={{ margin: "6px 0" }}>Projects Using: {set.projectsUsing}</p>
                                 </div>
                             ))}
                         </div>

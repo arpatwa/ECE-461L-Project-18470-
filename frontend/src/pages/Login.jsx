@@ -4,6 +4,17 @@ import "../index.css";
 
 //using same format as the signin page :)
 
+//RSA PUBLIC KEY
+    const n = 3233;
+    const e = 17;
+
+    function rsaEncrypt(password) {
+        return password
+            .split("")
+            .map(char => Math.pow(char.charCodeAt(0), e) % n)
+            .join(",");
+    }
+
 export default function Login() {
     const navigate = useNavigate();
 
@@ -39,7 +50,7 @@ const handleSubmit = async (e) => {
             },
             body: JSON.stringify({
                 username: formData.username,
-                password: formData.password
+                password: rsaEncrypt(formData.password)
             })
         });
 

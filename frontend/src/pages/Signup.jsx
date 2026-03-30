@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import React from "react";
 
 //RSA PUBLIC KEY
     const n = 3233;

@@ -3,6 +3,7 @@ import Homepage from "./pages/Homepage.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import HardwareUI from "./pages/HardwareUI.jsx";
+import "./App.css"; 
 
 export default function App() {
     return (

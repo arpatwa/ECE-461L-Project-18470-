@@ -6,26 +6,6 @@ import os
 from dotenv import load_dotenv
 import urllib.parse
 
-app = Flask(__name__, static_folder='build')
-
-@app.route('/api', methods=['POST'])
-def api():
-    data = request.json
-    if data['input'] == 'YourFirstName':
-        return jsonify({'response': 'YourLastName'})
-    else:
-        return jsonify({'response': 'User Not Found'}), 404
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    if path != "" and os.path.exists(app.staticfolder + '/' + path):
-        return app.send_from_directory(app.staticfolder, path)
-    else:
-        return app.send_from_directory(app.static_folder, 'index.html')
-
-
-
 def seed_resources():
     default_resources = [
         {"name": "HWSet1", "capacity": 100, "available": 100},
@@ -37,7 +17,7 @@ def seed_resources():
         if not existing:
             resources_collection.insert_one(resource)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='build', static_url_path='')
 CORS(app)
 
 # -----------------------------
@@ -374,13 +354,21 @@ def checkin():
     return jsonify({"message": f"Checked in {qty} units of {resource_name}"}), 200 # Success with check in
 
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return app.send_static_file(path)
+    else:
+        return app.send_static_file('index.html')
+
 # -----------------------------
 # TEST ROUTE
 # -----------------------------
 
-@app.route("/")
-def home():
-    return jsonify({"message": "Hardware Resource System API running"})
+# @app.route("/")
+# def home():
+#     return jsonify({"message": "Hardware Resource System API running"})
 
 
 # -----------------------------

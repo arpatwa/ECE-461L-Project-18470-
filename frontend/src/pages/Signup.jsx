@@ -2,6 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
 
+//RSA PUBLIC KEY
+    const n = 3233;
+    const e = 17;
+
+    function rsaEncrypt(password) {
+        return password
+            .split("")
+            .map(char => Math.pow(char.charCodeAt(0), e) % n)
+            .join(",");
+    }
+
 export default function Signup() {
     const navigate = useNavigate();
     
@@ -32,7 +43,7 @@ export default function Signup() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 username: formData.username,
-                password: formData.password
+                password: rsaEncrypt(formData.password)
             })
         });
 

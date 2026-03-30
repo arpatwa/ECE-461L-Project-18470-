@@ -53,6 +53,23 @@ except Exception as e:
     print(f"MongoDB Atlas Connection Error: {e}")
 
 # -----------------------------
+# RSA SETUP (MANUAL)
+# -----------------------------
+n = 3233
+e = 17
+d = 2753
+
+
+def rsa_decrypt(ciphertext):
+    try:
+        numbers = list(map(int, ciphertext.split(",")))
+        decrypted = [chr(pow(num, d, n)) for num in numbers]
+        return ''.join(decrypted)
+    except:
+        return None
+
+
+# -----------------------------
 # PASSWORD FUNCTIONS
 # -----------------------------
 
@@ -77,12 +94,21 @@ def signup():
     if users_collection.find_one({"username": data["username"]}):
         return jsonify({"error": "Username already exists"}), 400
 
-    hashed_pw = hash_password(data["password"])
+    # RSA DECRYPT
+    decrypted_pw = rsa_decrypt(data["password"])
+    if decrypted_pw is None:
+        return jsonify({"error": "Invalid encrypted password"}), 400
+
+
+    # HASH AFTER DECRYPTION
+    hashed_pw = hash_password(decrypted_pw)
+
 
     result = users_collection.insert_one({
         "username": data["username"],
         "password": hashed_pw
     })
+
 
     return jsonify({
         "message": "User created",
@@ -99,11 +125,20 @@ def login():
 
     user = users_collection.find_one({"username": data.get("username")})
 
-    if user and check_password(data.get("password"), user["password"]):
+
+
+    # RSA DECRYPT
+    decrypted_pw = rsa_decrypt(data.get("password"))
+    if decrypted_pw is None:
+        return jsonify({"error": "Invalid encrypted password"}), 400
+
+
+    if check_password(decrypted_pw, user["password"]):
         return jsonify({
             "message": "Login successful",
             "username": user["username"]
         })
+
 
     return jsonify({"error": "Invalid username or password"}), 401
 

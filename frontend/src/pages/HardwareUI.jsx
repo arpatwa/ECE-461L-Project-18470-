@@ -274,7 +274,7 @@ export default function HardwareUI() {
 
     return (
         // Main header
-        <div style={{ padding: "40px", width: "200%", boxSizing: "border-box" }}>
+        <div style={{ padding: "40px", width: "100%", boxSizing: "border-box" }}>
             <div style={{ marginBottom: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
                     <div>

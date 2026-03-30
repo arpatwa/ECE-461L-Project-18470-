@@ -6,6 +6,24 @@ import os
 from dotenv import load_dotenv
 import urllib.parse
 
+app = Flask(__name__, static_folder='build')
+
+@app.route('/api', methods=['POST'])
+def api():
+    data = request.json
+    if data['input'] == 'YourFirstName':
+        return jsonify({'response': 'YourLastName'})
+    else:
+        return jsonify({'response': 'User Not Found'}), 404
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.staticfolder + '/' + path):
+        return app.send_from_directory(app.staticfolder, path)
+    else:
+        return app.send_from_directory(app.static_folder, 'index.html')
+
 
 
 def seed_resources():

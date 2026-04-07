@@ -352,10 +352,19 @@ export default function HardwareUI() {
     const handleCheckin = async (index) => {
         const set = hardwareSets[index];
         const qty = Number(set.checkinQty);
-        if (!qty || qty <= 0) return setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
+        if (!qty || qty <= 0)  {
+             setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
+             return;
+        }
         const data = await checkinHardware({ projectID: selectedProject, username, name: set.name, qty });
-        setResourceMessage(data.message || data.error);
-        await fetchProjectResources(selectedProject);
+        if (data.error) {
+            setResourceMessage(data.error)
+        } else {
+            setResourceMessage(data.message)
+            await fetchProjectResources(selectedProject);
+
+        }
+
     };
 
     return (
@@ -601,7 +610,7 @@ export default function HardwareUI() {
                                     <p style={{ margin: "6px 0" }}><strong>Available:</strong> {hardwareSets[selectedHardwareIndex].available} units</p>
 
                                     <p style={{ marginTop: "18px", marginBottom: "6px" }}>
-                                        <strong>Your Project:</strong> {hardwareSets[selectedHardwareIndex].yourProject} units
+                                        <strong>Amount in Active Project:</strong> {hardwareSets[selectedHardwareIndex].yourProject} units
                                     </p>
                                 </div>
 

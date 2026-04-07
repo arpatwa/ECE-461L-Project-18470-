@@ -296,7 +296,7 @@ def checkout():
         return jsonify({"error": "Resource not found"}), 404
 
     if resource["available"] < qty:
-        return jsonify({"error": "Resource unavailable"}), 400
+        return jsonify({"error": "Resource unavailable"}), 404
 
     # Update global HW sets
     resources_collection.update_one(

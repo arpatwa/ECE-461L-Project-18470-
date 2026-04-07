@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import React from "react";
+import {
+    fetchProjects as apiFetchProjects,
+    fetchProjectResources as apiFetchProjectResources,
+    checkoutHardware,
+    checkinHardware,
+    joinProject as apiJoinProject,
+    createProject as apiCreateProject,
+} from "./api"; // correct path
 
 export default function HardwareUI() {
     const navigate = useNavigate();
@@ -28,61 +36,87 @@ export default function HardwareUI() {
     const [joinProjectName, setJoinProjectName] = useState("");
 
     const fetchProjects = async () => {
-        try {
-            const res = await fetch("http://127.0.0.1:5000/projects");
-            const data = await res.json();
+        const data = await apiFetchProjects();
+        const projectsArray = Array.isArray(data) ? data : data.projects || [];
+        setAllProjects(projectsArray);
 
-            const projectsArray = Array.isArray(data) ? data : data.projects || [];
+        const joinedProjects = projectsArray.filter(
+            (project) =>
+                project.owner === username ||
+                (Array.isArray(project.members) && project.members.includes(username))
+        );
 
-            setAllProjects(projectsArray);
-
-            const joinedProjects = projectsArray.filter(
-                (project) =>
-                    project.owner === username ||
-                    (Array.isArray(project.members) && project.members.includes(username))
-            );
-
-            setUserProjects(joinedProjects);
-
-            if (joinedProjects.length > 0) {
-                setSelectedProject(joinedProjects[0].projectID);
-            } else {
-                setSelectedProject("");
-            }
-        } catch (err) {
-            console.error("Error fetching projects:", err);
-        }
+        setUserProjects(joinedProjects);
+        setSelectedProject(joinedProjects[0]?.projectID || "");
     };
+    // const fetchProjects = async () => {
+    //     try {
+    //         const res = await fetch("http://127.0.0.1:5000/projects");
+    //         const data = await res.json();
 
+    //         const projectsArray = Array.isArray(data) ? data : data.projects || [];
+
+    //         setAllProjects(projectsArray);
+
+    //         const joinedProjects = projectsArray.filter(
+    //             (project) =>
+    //                 project.owner === username ||
+    //                 (Array.isArray(project.members) && project.members.includes(username))
+    //         );
+
+    //         setUserProjects(joinedProjects);
+
+    //         if (joinedProjects.length > 0) {
+    //             setSelectedProject(joinedProjects[0].projectID);
+    //         } else {
+    //             setSelectedProject("");
+    //         }
+    //     } catch (err) {
+    //         console.error("Error fetching projects:", err);
+    //     }
+    // };
     const fetchProjectResources = async (projectID) => {
         if (!projectID) return;
-
-        try {
-            const res = await fetch(`http://127.0.0.1:5000/resources/${projectID}?username=${username}`);
-            const data = await res.json();
-
-            if (!res.ok) {
-                setResourceMessage(data.error || "Failed to load resources");
-                return;
-            }
-            const formatted = data.map((set) => ({
-                ...set,
-                checkoutQty: "",
-                checkinQty: ""
-            }));
-
-            setHardwareSets(formatted);
-            setResourceMessage("");
-            
-            // Reset to the first hardware set if the current index is out of bounds after a fetch
-            if (selectedHardwareIndex >= formatted.length) {
-                setSelectedHardwareIndex(0);
-            }
-        } catch (err) {
-            console.error(err);
-            setResourceMessage("Server error loading resources");
+        const data = await apiFetchProjectResources(projectID, username);
+        if (data.error) {
+            setResourceMessage(data.error);
+            return;
         }
+
+        const formatted = data.map((set) => ({ ...set, checkoutQty: "", checkinQty: "" }));
+        setHardwareSets(formatted);
+        setResourceMessage("");
     };
+
+    // const fetchProjectResources = async (projectID) => {
+    //     if (!projectID) return;
+
+    //     try {
+    //         const res = await fetch(`http://127.0.0.1:5000/resources/${projectID}?username=${username}`);
+    //         const data = await res.json();
+
+    //         if (!res.ok) {
+    //             setResourceMessage(data.error || "Failed to load resources");
+    //             return;
+    //         }
+    //         const formatted = data.map((set) => ({
+    //             ...set,
+    //             checkoutQty: "",
+    //             checkinQty: ""
+    //         }));
+
+    //         setHardwareSets(formatted);
+    //         setResourceMessage("");
+            
+    //         // Reset to the first hardware set if the current index is out of bounds after a fetch
+    //         if (selectedHardwareIndex >= formatted.length) {
+    //             setSelectedHardwareIndex(0);
+    //         }
+    //     } catch (err) {
+    //         console.error(err);
+    //         setResourceMessage("Server error loading resources");
+    //     }
+    // };
 
     useEffect(() => {
         const loadProjects = () => {
@@ -103,79 +137,101 @@ export default function HardwareUI() {
 
     // Be able to handle joining projects if already joined, joining new, non-existent project, etc
     const handleJoinProject = async () => {
-        if (!joinProjectName) {
-            setMessage("Please choose a project to join");
-            return;
-        }
-
-        try {
-            const r = await fetch("http://127.0.0.1:5000/projects/join", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    projectID: joinProjectName,
-                    username: username,
-                }),
-            });
-
-            const data = await r.json();
-
-            if (!r.ok) {
-                setMessage(data.error || "Failed to join project");
-                return;
-            }
-
-            // Successful project join
+        if (!joinProjectName) return setMessage("Please choose a project to join");
+        const data = await apiJoinProject(joinProjectName, username);
+        if (data.error) setMessage(data.error);
+        else {
             setMessage(data.message || `Successfully joined project: ${joinProjectName}`);
             setJoinProjectName("");
             await fetchProjects();
-        } catch (err) {
-            console.error(err);
-            setMessage("Server error in joining the project");
         }
-
     };
 
+    // const handleJoinProject = async () => {
+    //     if (!joinProjectName) {
+    //         setMessage("Please choose a project to join");
+    //         return;
+    //     }
+
+    //     try {
+    //         const r = await fetch("http://127.0.0.1:5000/projects/join", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             body: JSON.stringify({
+    //                 projectID: joinProjectName,
+    //                 username: username,
+    //             }),
+    //         });
+
+    //         const data = await r.json();
+
+    //         if (!r.ok) {
+    //             setMessage(data.error || "Failed to join project");
+    //             return;
+    //         }
+
+    //         // Successful project join
+    //         setMessage(data.message || `Successfully joined project: ${joinProjectName}`);
+    //         setJoinProjectName("");
+    //         await fetchProjects();
+    //     } catch (err) {
+    //         console.error(err);
+    //         setMessage("Server error in joining the project");
+    //     }
+
+    // };
+
+    // const handleCreateProject = async () => {
+    //     if (!projectID || !projectName) {
+    //         setMessage("Project ID and Name required");
+    //         return;
+    //     }
+
+    //     try {
+    //         const res = await fetch("http://127.0.0.1:5000/projects", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             body: JSON.stringify({
+    //                 // Need all of these so each person only has access to their stuff
+    //                 projectID: projectID,
+    //                 name: projectName,
+    //                 description: description,
+    //                 owner: username, //need this for backend connection
+    //             }),
+    //         });
+
+    //         const data = await res.json();
+
+    //         if (!res.ok) {
+    //             setMessage(data.error || "Failed to create project");
+    //             return;
+    //         }
+
+    //         setMessage(`Project created: ${projectName}`);
+    //         await fetchProjects();
+
+    //         // clear form
+    //         setProjectID("");
+    //         setProjectName("");
+    //         setDescription("");
+    //     } catch (err) {
+    //         console.error(err);
+    //         setMessage("Server error creating project");
+    //     }
+    // };
+
     const handleCreateProject = async () => {
-        if (!projectID || !projectName) {
-            setMessage("Project ID and Name required");
-            return;
-        }
-
-        try {
-            const res = await fetch("http://127.0.0.1:5000/projects", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    // Need all of these so each person only has access to their stuff
-                    projectID: projectID,
-                    name: projectName,
-                    description: description,
-                    owner: username, //need this for backend connection
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                setMessage(data.error || "Failed to create project");
-                return;
-            }
-
+        if (!projectID || !projectName) return setMessage("Project ID and Name required");
+        const data = await apiCreateProject({ projectID, name: projectName, description, owner: username });
+        if (data.error) setMessage(data.error);
+        else {
             setMessage(`Project created: ${projectName}`);
+            setProjectID(""); setProjectName(""); setDescription("");
             await fetchProjects();
-
-            // clear form
-            setProjectID("");
-            setProjectName("");
-            setDescription("");
-        } catch (err) {
-            console.error(err);
-            setMessage("Server error creating project");
         }
     };
 
@@ -188,88 +244,106 @@ export default function HardwareUI() {
 
     const handleCheckout = async (index) => {
         const set = hardwareSets[index];
-        // String to num for qty
-        const qty = Number(set.checkoutQty); // Get curr checkout value
-
-        // Prevent empty, 0 , negative inputs
-        if (!qty || qty <= 0) {
-            setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
-            return;
-        }
-        // API call starting
-
-        try {
-            const res = await fetch("http://127.0.0.1:5000/checkout", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                // Send data to back
-                body: JSON.stringify({
-                    projectID: selectedProject,
-                    username: username,
-                    name: set.name,
-                    qty: qty
-                }),
-            });
-
-            // Back response into js
-            const data = await res.json();
-
-            if (!res.ok) {
-                setResourceMessage(data.error || "Checkout failed");
-                return;
-            }
-
-            setResourceMessage(data.message);
-            // UI updated backend data
-            await fetchProjectResources(selectedProject);
-        } catch (err) {
-            console.error(err);
-            setResourceMessage("Server error during checkout");
-        }
+        const qty = Number(set.checkoutQty);
+        if (!qty || qty <= 0) return setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
+        const data = await checkoutHardware({ projectID: selectedProject, username, name: set.name, qty });
+        setResourceMessage(data.message || data.error);
+        await fetchProjectResources(selectedProject);
     };
+
+    // const handleCheckout = async (index) => {
+    //     const set = hardwareSets[index];
+    //     // String to num for qty
+    //     const qty = Number(set.checkoutQty); // Get curr checkout value
+
+    //     // Prevent empty, 0 , negative inputs
+    //     if (!qty || qty <= 0) {
+    //         setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
+    //         return;
+    //     }
+    //     // API call starting
+
+    //     try {
+    //         const res = await fetch("http://127.0.0.1:5000/checkout", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             // Send data to back
+    //             body: JSON.stringify({
+    //                 projectID: selectedProject,
+    //                 username: username,
+    //                 name: set.name,
+    //                 qty: qty
+    //             }),
+    //         });
+
+    //         // Back response into js
+    //         const data = await res.json();
+
+    //         if (!res.ok) {
+    //             setResourceMessage(data.error || "Checkout failed");
+    //             return;
+    //         }
+
+    //         setResourceMessage(data.message);
+    //         // UI updated backend data
+    //         await fetchProjectResources(selectedProject);
+    //     } catch (err) {
+    //         console.error(err);
+    //         setResourceMessage("Server error during checkout");
+    //     }
+    // };
+
+    // const handleCheckin = async (index) => {
+    //     const set = hardwareSets[index];
+    //     const qty = Number(set.checkinQty);
+
+    //     if (!qty || qty <= 0) {
+    //         setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
+    //         return;
+    //     }
+
+    //     try {
+    //         // Call backend
+    //         const res = await fetch("http://127.0.0.1:5000/checkin", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             // Data to backend
+    //             body: JSON.stringify({
+    //                 projectID: selectedProject,
+    //                 username: username,
+    //                 name: set.name,
+    //                 qty: qty
+    //             }),
+    //         });
+    //         // Back response into js
+    //         const data = await res.json();
+
+    //         if (!res.ok) {
+    //             setResourceMessage(data.error || "Checkin failed");
+    //             return;
+    //         }
+
+    //         setResourceMessage(data.message);
+    //         // UI updated backend data
+    //         await fetchProjectResources(selectedProject);
+    //     } catch (err) {
+    //         // Cant connect server
+    //         console.error(err);
+    //         setResourceMessage("Server error during checkin");
+    //     }
+    // };
 
     const handleCheckin = async (index) => {
         const set = hardwareSets[index];
         const qty = Number(set.checkinQty);
-
-        if (!qty || qty <= 0) {
-            setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
-            return;
-        }
-
-        try {
-            // Call backend
-            const res = await fetch("http://127.0.0.1:5000/checkin", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                // Data to backend
-                body: JSON.stringify({
-                    projectID: selectedProject,
-                    username: username,
-                    name: set.name,
-                    qty: qty
-                }),
-            });
-            // Back response into js
-            const data = await res.json();
-
-            if (!res.ok) {
-                setResourceMessage(data.error || "Checkin failed");
-                return;
-            }
-
-            setResourceMessage(data.message);
-            // UI updated backend data
-            await fetchProjectResources(selectedProject);
-        } catch (err) {
-            // Cant connect server
-            console.error(err);
-            setResourceMessage("Server error during checkin");
-        }
+        if (!qty || qty <= 0) return setResourceMessage(`ERROR: Enter a valid check in quantity for ${set.name}`);
+        const data = await checkinHardware({ projectID: selectedProject, username, name: set.name, qty });
+        setResourceMessage(data.message || data.error);
+        await fetchProjectResources(selectedProject);
     };
 
     return (

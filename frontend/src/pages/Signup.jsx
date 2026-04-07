@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
-import { API_BASE_URL } from "./api"; 
+import { signupUser, API_BASE_URL } from "./api"; 
 import React from "react";
 
 //RSA PUBLIC KEY
@@ -17,54 +17,89 @@ import React from "react";
 
 export default function Signup() {
     const navigate = useNavigate();
-    
-    // State to hold form data
     const [formData, setFormData] = useState({
         username: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
     });
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Placeholder for authentication logic
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match!");
             return;
         }
-        try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                username: formData.username,
-                password: rsaEncrypt(formData.password)
-            })
-        });
 
-        const data = await response.json();
-        if (response.ok) {
-            alert("Signup successful!");
-            navigate("/login");
-        } else {
-            alert(data.error || "Signup failed");
-        }
+        try {
+            const data = await signupUser(
+                formData.username,
+                rsaEncrypt(formData.password)
+            );
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert("Signup successful!");
+                navigate("/login");
+            }
         } catch (err) {
             console.error("Error during signup:", err);
+            alert("Server error during signup");
         }
-        // console.log("Submitting:", formData);
-        // After successful signup, you could navigate to login or home:
-        // navigate("/login");
     };
+    // const navigate = useNavigate();
+    
+    // // State to hold form data
+    // const [formData, setFormData] = useState({
+    //     username: "",
+    //     password: "",
+    //     confirmPassword: ""
+    // });
+
+    // const handleChange = (e) => {
+    //     setFormData({
+    //         ...formData,
+    //         [e.target.name]: e.target.value
+    //     });
+    // };
+
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     // Placeholder for authentication logic
+    //     if (formData.password !== formData.confirmPassword) {
+    //         alert("Passwords do not match!");
+    //         return;
+    //     }
+    //     try {
+    //     const response = await fetch(`${API_BASE_URL}/login`, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json"
+    //         },
+    //         body: JSON.stringify({
+    //             username: formData.username,
+    //             password: rsaEncrypt(formData.password)
+    //         })
+    //     });
+
+    //     const data = await response.json();
+    //     if (response.ok) {
+    //         alert("Signup successful!");
+    //         navigate("/login");
+    //     } else {
+    //         alert(data.error || "Signup failed");
+    //     }
+    //     } catch (err) {
+    //         console.error("Error during signup:", err);
+    //     }
+    //     // console.log("Submitting:", formData);
+    //     // After successful signup, you could navigate to login or home:
+    //     // navigate("/login");
+    // };
 
     //Buttons for Registering and Canceling
     const buttonStyle = {

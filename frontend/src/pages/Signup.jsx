@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import { API_BASE_URL } from "../api"; 
 import React from "react";
 
 //RSA PUBLIC KEY
@@ -39,9 +40,11 @@ export default function Signup() {
             return;
         }
         try {
-        const response = await fetch('http://localhost:5000/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
                 username: formData.username,
                 password: rsaEncrypt(formData.password)

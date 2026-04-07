@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import { API_BASE_URL } from "../api"; 
 import React from "react";
 
 //using same format as the signin page :)
@@ -44,7 +45,7 @@ const handleSubmit = async (e) => {
     setError(""); // Clear previous errors
 
     try {
-        const response = await fetch("http://localhost:5000/login", {
+        const response = await fetch(`${API_BASE_URL}/login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

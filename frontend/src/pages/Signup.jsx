@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
-import { API_BASE_URL } from "../api"; 
+import { API_BASE_URL } from "./api"; 
 import React from "react";
 
 //RSA PUBLIC KEY

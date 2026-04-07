@@ -1,5 +1,10 @@
 // api.js
-export const API_BASE_URL = "http://127.0.0.1:5000";
+
+// Dynamically choose backend URL based on environment
+export const API_BASE_URL =
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000" // local dev backend
+    : "https://your-heroku-app-name.herokuapp.com"; // replace with your actual Heroku app URL
 
 // ---- AUTH ----
 export async function signupUser(username, password) {

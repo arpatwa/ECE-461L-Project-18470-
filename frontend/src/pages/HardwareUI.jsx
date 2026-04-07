@@ -245,10 +245,22 @@ export default function HardwareUI() {
     const handleCheckout = async (index) => {
         const set = hardwareSets[index];
         const qty = Number(set.checkoutQty);
-        if (!qty || qty <= 0) return setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
+
+        if (!qty || qty <= 0) {
+            setResourceMessage(`ERROR: Enter a valid checkout quantity for ${set.name}`);
+            return;
+        }
+
         const data = await checkoutHardware({ projectID: selectedProject, username, name: set.name, qty });
-        setResourceMessage(data.message || data.error);
-        await fetchProjectResources(selectedProject);
+
+        if (data.error) {
+            // Show error without resetting hardware sets
+            setResourceMessage(data.error);
+        } else {
+            // Success: update hardware sets and clear error
+            setResourceMessage(data.message);
+            await fetchProjectResources(selectedProject); // Only reload when checkout succeeds
+        }
     };
 
     // const handleCheckout = async (index) => {

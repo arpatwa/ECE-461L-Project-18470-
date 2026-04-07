@@ -339,7 +339,7 @@ def checkin():
 
     # Check if we have x number of checked out to check in
     if current_qty < qty:
-        return jsonify({"error": "Project does not have this many units checked out"}), 400
+        return jsonify({"error": "Project does not have this many units checked out"}), 404
 
     resources_collection.update_one(
         {"name": data["name"]},
